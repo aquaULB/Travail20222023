@@ -102,11 +102,31 @@ def solution_soliton(x,dx,nx,dt,nt,a,c,e,c2,a2):
         u[i+1] = rk4(u[i],rhs,dt,d1m2nd,d3m2nd)
     return u
 
-def animate(frame, dt, x, u,line):
-    line.set_data(x, u[frame])
+def animate(time,dt,s):
+    """Modifies the line representing u and
+    the text indicating the corresponding time
     
-    line.set_label(f"t={frame * dt: .2f}")
+    Parameters
+    ----------
+    time : float
+        time at which to plot u
     
-    ax.legend(loc="upper right")
+    Returns
+    -------
+    line : updated line
+    time_text : update text indicating time
+    """
     
-    return line,
+    # array index corresponding to time
+    j = int(time/dt)
+    
+    # update the line.
+    line.set_ydata(s[j])
+    
+    # update the time text.
+    # j*dt is displayed with two digits
+    # after the decimal point
+    time_text.set_text(f't={time:.2f}')
+    
+    # return the updated data to FuncAnimation
+    return line, time_text
