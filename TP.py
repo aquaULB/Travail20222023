@@ -1,6 +1,9 @@
 import numpy as np
-import matplotlib.pyplot as plt
 from scipy.sparse import diags
+from IPython.display import HTML
+import matplotlib.pyplot as plt
+import matplotlib.animation as animation
+
 
 '''
 Unless stated otherwise, all the code below is my own content.
@@ -22,10 +25,32 @@ def d1_mat(nx,dx):
     d1_mat : np.ndarray
         Matrix to compute the second-order centered first-order derivative
     '''
-    diagonals = [[-1/2],[1/2]]
+    diagonals = [-1/2,1/2]
     offsets = [-1,1]
 
     return diags(diagonals, offsets, shape=(nx, nx)).A / dx
+
+def d1_mat_periodic(nx,dx):
+    '''
+    Constructs the second-order centered first-order derivative with question 3 periodic conditions.
+    
+    Parameters
+    ----------
+    nx : integer
+        Number of grid points
+    dx : float
+        Grid spacing
+
+    Returns
+    ----------
+    d3_mat : np.ndarray
+        Matrix to compute the second-order centered first-order derivative with question 3 periodic conditions.
+    '''
+    d1 = d1_mat(nx,dx) * dx
+    d1[0,-2] = -1/2
+    d1[-1,1] = 1/2
+
+    return d1 / dx
 
 def d3_mat(nx,dx):
     '''
@@ -43,12 +68,38 @@ def d3_mat(nx,dx):
     d3_mat : np.ndarray
         Matrix to compute the second-order centered third-order derivative
     '''
-    diagonals = [[-1/2],[1],[-1],[1/2]]
+    diagonals = [-1/2,1,-1,1/2]
     offsets = [-2,-1,1,2]
 
     return diags(diagonals, offsets, shape=(nx, nx)).A / dx**3
 
-def rhs(u,d1m2nd,d3m2nd):
+def d3_mat_periodic(nx,dx):
+    '''
+    Constructs the second-order centered third-order derivative with question 4 periodic conditions.
+    
+    Parameters
+    ----------
+    nx : integer
+        Number of grid points
+    dx : float
+        Grid spacing
+
+    Returns
+    ----------
+    d3_mat : np.ndarray
+        Matrix to compute the second-order centered third-order derivative with question 4 periodic conditions.
+    '''
+    d3 = d3_mat(nx,dx) * dx**3
+    d3[0,-3] = -1/2
+    d3[0,-2] = 1
+    d3[1,-2] = -1/2
+    d3[-2,1] = 1/2
+    d3[-1,1] = -1
+    d3[-1,2] = 1/2
+
+    return d3 / dx**3
+
+def kdv_rhs(u,d1m2nd,d3m2nd):
     '''
     Constructs the solution at each stencil at constant time.
     
@@ -99,34 +150,16 @@ def solution_soliton(x,dx,nx,dt,nt,a,c,e,c2,a2):
     u[0] = soliton(x,0,c,a) + e*soliton(x,0,c2,a2)
 
     for i in range(nt):
-        u[i+1] = rk4(u[i],rhs,dt,d1m2nd,d3m2nd)
+        u[i+1] = rk4(u[i],kdv_rhs,dt,d1m2nd,d3m2nd)
     return u
 
-def animate(time,dt,s):
-    """Modifies the line representing u and
-    the text indicating the corresponding time
-    
-    Parameters
-    ----------
-    time : float
-        time at which to plot u
-    
-    Returns
-    -------
-    line : updated line
-    time_text : update text indicating time
-    """
-    
-    # array index corresponding to time
-    j = int(time/dt)
-    
-    # update the line.
-    line.set_ydata(s[j])
-    
-    # update the time text.
-    # j*dt is displayed with two digits
-    # after the decimal point
-    time_text.set_text(f't={time:.2f}')
-    
-    # return the updated data to FuncAnimation
-    return line, time_text
+def solution_periodic(x,dx,nx,dt,nt):
+    d1m2nd = d1_mat_periodic(nx,dx)
+    d3m2nd = d3_mat_periodic(nx,dx)
+
+    u = np.empty((nt+1,nx))
+    args = d1m2nd,d3m2nd
+    u[0] = 10/3 * np.cos(np.pi*x/20)
+    for i in range(nt):
+        u[i+1] = rk4(u[i],kdv_rhs,dt,d1m2nd,d3m2nd)
+    return u
